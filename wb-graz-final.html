@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WB Graz – Betriebsbesuche GRW26</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#c8102e;--darkred:#8b0a20;--navy:#0f1f3d;
+  --white:#ffffff;--bg:#f4f1eb;--bd:#e0dbd0;
+  --tx:#0f1f3d;--mu:#6b7280;--green:#15803d;--orange:#c2620a;
+  --rad:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Open Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow:hidden}
+
+/* ── HEADER ── */
+header{background:var(--red);border-bottom:3px solid var(--darkred);padding:0 20px;height:58px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:2000;box-shadow:0 2px 16px rgba(0,0,0,.35)}
+.wb-logo{flex-shrink:0;display:flex;align-items:center;gap:10px}
+.wb-logo svg{height:34px;width:auto}
+.wb-logo-text{display:flex;flex-direction:column;line-height:1.25}
+.wb-logo-text .t1{font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;color:#fff;letter-spacing:.5px;text-transform:uppercase}
+.wb-logo-text .t2{font-family:'Montserrat',sans-serif;font-weight:500;font-size:9px;color:rgba(255,255,255,.75);letter-spacing:.5px;text-transform:uppercase}
+.hdiv{width:1px;height:28px;background:rgba(255,255,255,.3);flex-shrink:0;margin:0 2px}
+.htitle h1{font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;color:#fff;letter-spacing:.2px}
+.htitle p{font-size:10px;color:rgba(255,255,255,.6);margin-top:1px}
+.hst{margin-left:auto;display:flex;gap:9px;align-items:center}
+.sp{background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.2);border-radius:30px;padding:4px 13px;text-align:center;min-width:62px}
+.sp .n{font-family:'Montserrat',sans-serif;font-size:16px;font-weight:800;color:#fff;line-height:1}
+.sp .l{font-size:8px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.6px}
+.upload-btn{background:rgba(0,0,0,.2);border:1.5px solid rgba(255,255,255,.35);color:#fff;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;font-family:'Montserrat',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:all .2s;letter-spacing:.3px}
+.upload-btn:hover{background:rgba(0,0,0,.35)}
+.upload-btn.loaded{background:rgba(21,128,61,.35);border-color:rgba(255,255,255,.4);color:#86efac}
+
+/* ── PROGRESS ── */
+.gp{background:var(--darkred);border-bottom:1px solid rgba(0,0,0,.2);padding:5px 20px;display:flex;align-items:center;gap:12px;height:20px}
+.gpl{font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;font-family:'Montserrat',sans-serif}
+.gbw{flex:1;height:3px;background:rgba(0,0,0,.3);border-radius:2px;overflow:hidden}
+.gbf{height:100%;background:rgba(255,255,255,.8);border-radius:2px;transition:width .6s ease}
+.gpct{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,.85);white-space:nowrap;min-width:34px}
+
+/* ── LAYOUT ── */
+.al{display:grid;grid-template-columns:385px 1fr;height:calc(100vh - 78px)}
+.sb{background:#fff;border-right:1px solid var(--bd);overflow-y:auto;display:flex;flex-direction:column}
+.sb::-webkit-scrollbar{width:4px}.sb::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px}
+.sbh{padding:11px 14px 8px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:#fafaf7;flex-shrink:0}
+.sbh h2{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:800;color:var(--navy);letter-spacing:.6px;text-transform:uppercase}
+.geo-st{font-size:10px;color:var(--mu);display:flex;align-items:center;gap:5px}
+.geo-dot{width:7px;height:7px;border-radius:50%;background:#ddd;animation:pulse 1.2s infinite}
+.geo-dot.done{background:var(--green);animation:none}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+.fps{display:flex;gap:5px;padding:8px 14px;background:#fafaf7;border-bottom:1px solid var(--bd);flex-wrap:wrap;flex-shrink:0}
+.fp{background:#eeebe4;border:1px solid #ddd;color:var(--mu);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;font-family:'Montserrat',sans-serif;cursor:pointer;transition:all .15s;letter-spacing:.3px}
+.fp.active{background:var(--red);border-color:var(--red);color:#fff}
+
+/* ── CARDS ── */
+.pl{padding:8px 10px;display:flex;flex-direction:column;gap:6px;flex:1}
+.pc{background:#fff;border:1.5px solid var(--bd);border-radius:var(--rad);overflow:hidden;transition:all .18s;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.pc:hover{border-color:rgba(200,16,46,.3);box-shadow:0 3px 10px rgba(200,16,46,.08);transform:translateY(-1px)}
+.pc.sel{border-color:var(--red);border-width:2px;box-shadow:0 0 0 2px rgba(200,16,46,.1);transform:none}
+.ph{padding:9px 11px;display:flex;align-items:center;gap:8px}
+.pnum{color:#fff;font-family:'Montserrat',sans-serif;font-weight:800;font-size:12px;width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pnum.done{background:var(--green)!important}.pnum.taken{background:var(--orange)!important}
+.pi{flex:1;min-width:0}
+.pi h3{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;color:var(--tx);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.2px}
+.pi p{font-size:10px;color:var(--mu);margin-top:1px}
+.ps{font-size:9px;padding:2px 7px;border-radius:20px;font-weight:700;flex-shrink:0;font-family:'Montserrat',sans-serif;letter-spacing:.4px}
+.sf{background:#dcfce7;color:#15803d;border:1px solid #86efac}
+.st{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+.sd{background:#dcfce7;color:#15803d;border:1px solid #4ade80}
+.pp{padding:0 11px 8px;display:flex;align-items:center;gap:6px}
+.pbw{flex:1;height:3px;background:#eeebe4;border-radius:2px;overflow:hidden}
+.pbf{height:100%;background:var(--green);border-radius:2px;transition:width .4s}
+.pt{font-size:10px;color:var(--mu);flex-shrink:0;min-width:28px;text-align:right;font-family:'Montserrat',sans-serif;font-weight:600}
+.pb{display:none;border-top:1px solid #f0ece4;background:#fafaf7}
+.pc.open .pb{display:block}
+.bl{padding:5px 11px;display:flex;flex-direction:column;gap:1px}
+.bi{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #f4f1eb}
+.bi:last-child{border-bottom:none}
+.bc{width:16px;height:16px;border:2px solid #d1d5db;border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.bc:hover{border-color:var(--red)}.bc.chk{background:var(--green);border-color:var(--green)}.bc.chk::after{content:'✓';color:#fff;font-size:10px;font-weight:700}
+.bn{font-size:11px;color:var(--tx);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bn.ct{text-decoration:line-through;color:#9ca3af}
+.bt{font-size:9px;color:var(--mu);background:#eeebe4;padding:1px 5px;border-radius:3px;white-space:nowrap;flex-shrink:0;font-family:'Montserrat',sans-serif}
+.bi-addr{font-size:9px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;flex-shrink:0}
+.af{padding:9px 11px;border-top:1px solid #f0ece4;background:#fff}
+.af h4{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px}
+.fr{display:flex;gap:5px;margin-bottom:5px}
+.fi{background:#f4f1eb;border:1.5px solid var(--bd);color:var(--tx);border-radius:6px;padding:6px 9px;font-size:11px;font-family:'Open Sans',sans-serif;flex:1;transition:border-color .15s}
+.fi:focus{outline:none;border-color:var(--red)}.fi::placeholder{color:#9ca3af}
+.btn{padding:6px 11px;border-radius:6px;font-size:11px;font-weight:700;font-family:'Montserrat',sans-serif;cursor:pointer;border:none;transition:all .15s;letter-spacing:.3px}
+.bp{background:var(--red);color:#fff}.bp:hover{background:var(--darkred)}
+.bw{background:#f4f1eb;color:#6b7280;border:1.5px solid var(--bd);font-size:10px}.bw:hover{background:#fdecea;color:var(--red)}
+.ai{background:#fff8e1;border:1px solid #fcd34d;border-radius:6px;padding:7px 10px;font-size:11px;color:#92400e;display:flex;align-items:center;justify-content:space-between;gap:8px}
+
+/* ── MAP ── */
+#map{width:100%;height:100%}
+
+/* ── UPLOAD MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(4px)}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:#fff;border-radius:14px;padding:28px;width:500px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.25);border-top:4px solid var(--red)}
+.modal h3{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:800;color:var(--navy);margin-bottom:6px}
+.modal p{font-size:12px;color:var(--mu);margin-bottom:16px;line-height:1.6}
+.drop-zone{border:2px dashed #d1d5db;border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;background:#fafaf7;margin-bottom:14px}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--red);background:#fdecea}
+.drop-zone .icon{font-size:36px;margin-bottom:10px}
+.drop-zone h4{font-family:'Montserrat',sans-serif;font-weight:700;font-size:13px;color:var(--navy);margin-bottom:4px}
+.drop-zone p{font-size:11px;color:var(--mu);margin:0}
+.upload-hint{background:#f4f1eb;border-radius:8px;padding:11px 13px;font-size:11px;color:#374151;line-height:1.8;margin-bottom:14px}
+.upload-hint b{color:var(--red);font-family:'Montserrat',sans-serif}
+.upload-hint code{background:#e0dbd0;padding:1px 5px;border-radius:3px;font-size:10px;font-family:monospace}
+.upload-result{padding:9px 12px;border-radius:7px;font-size:11px;font-family:'Montserrat',sans-serif;font-weight:600;margin-bottom:12px;display:none}
+.upload-result.ok{background:#dcfce7;color:#15803d;border:1px solid #86efac}
+.upload-result.err{background:#fdecea;color:var(--red);border:1px solid #fca5a5}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:18px;right:18px;padding:10px 18px;border-radius:9px;font-size:12px;font-weight:700;font-family:'Montserrat',sans-serif;z-index:9999;transform:translateY(60px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);box-shadow:0 4px 20px rgba(0,0,0,.2);color:#fff;letter-spacing:.3px}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ── EMPTY STATE ── */
+.empty-state{padding:40px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
+.empty-state .es-icon{font-size:48px}
+.empty-state h3{font-family:'Montserrat',sans-serif;font-weight:800;font-size:15px;color:var(--navy)}
+.empty-state p{font-size:12px;color:var(--mu);line-height:1.6;max-width:280px}
+
+.spinner{width:24px;height:24px;border:3px solid #e0dbd0;border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-ph{padding:28px 20px;text-align:center;color:var(--mu);font-family:'Montserrat',sans-serif;font-weight:600;font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wb-logo">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 219.65 224.1">
+      <path d="M58.31,68.62h20.12c.74,0,1.38.53,1.53,1.27l19.9,96.7c.18.85-.46,1.65-1.32,1.65h-23.51c-4.71,0-8.78-3.37-9.75-8.07l-16.17-78.59-.15-.74c-1.53-6.21,3.08-12.23,9.35-12.23M90.02,68.62h30.33c.74,0,1.38.53,1.53,1.27l19.77,96.06c.24,1.18-.64,2.3-1.83,2.3h-29.68c-.74,0-1.38-.53-1.53-1.27l-19.9-96.7c-.18-.86.46-1.66,1.32-1.66M131.96,68.62h29.63c5.73,0,9.67,4.84,9.64,9.82,0,.78-.45,3.15-.45,3.15l-16.17,78.59c-.41,1.98-1.36,3.72-2.68,5.07-.62.63-1.69.27-1.87-.6l-19.42-94.37c-.18-.85.46-1.65,1.32-1.65M109.82,224.1c60.65,0,109.82-50.17,109.82-112.05S170.48,0,109.82,0,0,50.17,0,112.05s49.17,112.05,109.82,112.05" fill="#ffffff"/>
+    </svg>
+    <div class="wb-logo-text">
+      <span class="t1">Wirtschaftsbund</span>
+      <span class="t2">Graz · GRW 2026</span>
+    </div>
+  </div>
+  <div class="hdiv"></div>
+  <div class="htitle">
+    <h1>Betriebsbesuche</h1>
+    <p>Koordinationstool für Kandidatinnen & Kandidaten</p>
+  </div>
+  <div class="hst">
+    <div class="sp"><div class="n" id="s-total">—</div><div class="l">Betriebe</div></div>
+    <div class="sp"><div class="n" id="s-done">0</div><div class="l">Besucht ✓</div></div>
+    <div class="sp"><div class="n" id="s-free">—</div><div class="l">Pakete frei</div></div>
+    <button class="upload-btn" id="uploadBtn" onclick="openModal()">📂 CSV laden</button>
+  </div>
+</header>
+
+<div class="gp">
+  <span class="gpl">Gesamtfortschritt GRW26</span>
+  <div class="gbw"><div class="gbf" id="gb" style="width:0%"></div></div>
+  <span class="gpct" id="gp-pct">— %</span>
+</div>
+
+<div class="al">
+  <div class="sb">
+    <div class="sbh">
+      <h2>📦 Besuchs-Pakete</h2>
+      <div class="geo-st"><div class="geo-dot" id="geoDot"></div><span id="geoText">—</span></div>
+    </div>
+    <div class="fps">
+      <span class="fp active" data-f="all">Alle</span>
+      <span class="fp" data-f="free">Frei</span>
+      <span class="fp" data-f="taken">Vergeben</span>
+      <span class="fp" data-f="done">Erledigt</span>
+    </div>
+    <div class="pl" id="paketList"></div>
+  </div>
+  <div style="position:relative"><div id="map"></div></div>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3>📂 Betriebsliste laden</h3>
+    <p>Exportiere dein Google Sheet als CSV und lade die Datei hier hoch. Die Daten werden gespeichert und bleiben beim nächsten Öffnen erhalten.</p>
+
+    <div class="upload-hint">
+      <b>Export aus Google Sheets:</b><br>
+      Datei → Herunterladen → <b>Kommagetrennte Werte (.csv)</b><br><br>
+      <b>Benötigte Spalten:</b><br>
+      <code>paket_nr, paket_name, bezirk, name, typ, adresse, plz, stadt</code>
+    </div>
+
+    <!-- DROP ZONE -->
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">📄</div>
+      <h4>CSV-Datei hier ablegen</h4>
+      <p>oder klicken zum Auswählen</p>
+      <input type="file" id="fileInput" accept=".csv,.txt" style="display:none" onchange="handleFile(event)">
+    </div>
+
+    <div class="upload-result" id="uploadResult"></div>
+
+    <div class="modal-btns">
+      <button class="btn bw" onclick="closeModal()">Schließen</button>
+      <button class="btn bw" onclick="loadDemo();closeModal()">Demo-Daten</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GMAPS_KEY = 'AIzaSyDTbJWxH9znrHW8K-qPEgDgYBUG82npt6k';
+const STORAGE_KEY = 'wb_rows_v1';
+const PAKET_COLORS = [
+  '#c8102e','#1565c0','#2e7d32','#7b3f00','#4a1472','#00695c',
+  '#b91c1c','#0369a1','#3d6b21','#4527a0','#0e7490','#9a3412',
+  '#374151','#065f46','#1e3a5f','#6b2d1f'
+];
+
+let PAKETE = [];
+let state  = { assignments:{}, checked:{}, openPaket:null, filter:'all' };
+let gmap = null, gmarkers = {}, infoWin = null, geocoder = null;
+
+// ── STORAGE ──────────────────────────────────────────────
+async function saveState(){
+  try{ await window.storage.set('wb_state_v1', JSON.stringify({a:state.assignments,c:state.checked})); }catch(e){}
+}
+async function loadState(){
+  try{
+    const r = await window.storage.get('wb_state_v1');
+    if(r?.value){ const s=JSON.parse(r.value); state.assignments=s.a||{}; state.checked=s.c||{}; }
+  }catch(e){}
+}
+async function saveRows(rows){
+  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(rows)); }catch(e){}
+}
+async function loadRows(){
+  try{
+    const r = await window.storage.get(STORAGE_KEY);
+    if(r?.value) return JSON.parse(r.value);
+  }catch(e){}
+  return null;
+}
+
+// ── MODAL ────────────────────────────────────────────────
+function openModal(){
+  document.getElementById('uploadResult').style.display = 'none';
+  document.getElementById('modalBg').classList.add('open');
+  const dz = document.getElementById('dropZone');
+  dz.ondragover = e => { e.preventDefault(); dz.classList.add('drag'); };
+  dz.ondragleave = () => dz.classList.remove('drag');
+  dz.ondrop = e => {
+    e.preventDefault(); dz.classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if(f) processFile(f);
+  };
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+
+function handleFile(e){
+  const f = e.target.files[0];
+  if(f) processFile(f);
+  e.target.value = ''; // reset so same file can be re-uploaded
+}
+
+function processFile(file){
+  if(!file.name.match(/\.(csv|txt)$/i)){
+    showResult('Bitte eine .csv Datei wählen', 'err'); return;
+  }
+  showResult('Wird gelesen…', 'loading');
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const rows = parseCSV(text);
+    if(!rows.length){
+      showResult('Keine Daten gefunden. Bitte Spaltenformat prüfen.', 'err'); return;
+    }
+    saveRows(rows);
+    buildPakete(rows);
+    document.getElementById('uploadBtn').textContent = '✅ ' + rows.length + ' Betriebe';
+    document.getElementById('uploadBtn').classList.add('loaded');
+    showResult('✅ ' + rows.length + ' Betriebe aus „' + file.name + '" geladen!', 'ok');
+    setTimeout(closeModal, 1200);
+    showToast('✅ ' + rows.length + ' Betriebe geladen!', '#15803d');
+    geocodeAll();
+  };
+  reader.onerror = () => showResult('Fehler beim Lesen der Datei', 'err');
+  reader.readAsText(file, 'UTF-8');
+}
+
+function showResult(msg, type){
+  const el = document.getElementById('uploadResult');
+  el.style.display = 'block';
+  el.className = 'upload-result ' + (type === 'err' ? 'err' : 'ok');
+  el.textContent = msg;
+}
+
+// ── CSV PARSER ───────────────────────────────────────────
+function parseCSV(raw){
+  const lines = raw.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n').filter(l=>l.trim());
+  if(lines.length < 2) return [];
+  const headers = splitLine(lines[0]).map(h =>
+    h.trim().toLowerCase()
+     .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+     .replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'')
+  );
+  console.log('[WB] CSV Spalten:', headers.join(' | '));
+  return lines.slice(1).map(line => {
+    const vals = splitLine(line), row = {};
+    headers.forEach((h,i) => { row[h] = (vals[i]||'').trim(); });
+    return row;
+  }).filter(r => Object.values(r).some(v => v.length > 0));
+}
+
+function splitLine(line){
+  const res = []; let cur = '', inQ = false;
+  for(let i = 0; i < line.length; i++){
+    const c = line[i];
+    if(c==='"'){ if(inQ && line[i+1]==='"'){ cur+='"'; i++; } else inQ=!inQ; }
+    else if(c===',' && !inQ){ res.push(cur); cur=''; }
+    else cur += c;
+  }
+  res.push(cur); return res;
+}
+
+// ── BUILD PAKETE ─────────────────────────────────────────
+function g(row, ...keys){ for(const k of keys) if(row[k]!==undefined && row[k]!=='') return row[k]; return ''; }
+
+function buildPakete(rows){
+  const map = {};
+  rows.forEach((r, i) => {
+    const nr    = parseInt(g(r,'paket_nr','paketnr','paket_nummer','paket','nr','p_nr')) || 1;
+    const pname = g(r,'paket_name','paketname','paket_bezeichnung','zone','gebiet') || 'Paket '+nr;
+    const bez   = g(r,'bezirk','stadtteil','district') || '';
+    const name  = g(r,'name','betrieb','firma','bezeichnung','unternehmen') || 'Betrieb '+(i+1);
+    const typ   = g(r,'typ','type','kategorie','branche','art') || '';
+    const str   = g(r,'adresse','adress','strasse','address') || '';
+    const plz   = g(r,'plz','postleitzahl','zip') || '8010';
+    const stadt = g(r,'stadt','city','ort','gemeinde') || 'Graz';
+
+    let addr = str;
+    if(plz || stadt) addr += (addr ? ', ' : '') + [plz, stadt].filter(Boolean).join(' ');
+    if(!addr.toLowerCase().includes('graz')) addr += ', Graz';
+
+    if(!map[nr]) map[nr] = { id:nr, name:pname, bezirk:bez, betriebe:[] };
+    map[nr].betriebe.push({ name, typ, adresse:addr, lat:null, lng:null, geocoded:false });
+  });
+  PAKETE = Object.values(map).sort((a,b) => a.id-b.id);
+  console.log('[WB] Pakete:', PAKETE.length, '| Betriebe:', PAKETE.reduce((s,p)=>s+p.betriebe.length,0));
+  renderSidebar(); updateStats();
+}
+
+// ── GEOCODING ────────────────────────────────────────────
+async function geocodeAll(){
+  if(!geocoder){ setTimeout(geocodeAll, 1200); return; }
+  const all = [];
+  PAKETE.forEach(p => p.betriebe.forEach((b,i) => { if(!b.geocoded) all.push({p,b,i}); }));
+  const total = all.length; let done = 0;
+  setGeoSt('Geocoding ' + total + ' Adressen…', false);
+
+  for(const {p,b,i} of all){
+    await new Promise(resolve => {
+      geocoder.geocode({address:b.adresse, region:'AT', componentRestrictions:{country:'AT'}}, (res,st) => {
+        if(st==='OK' && res?.[0]){
+          b.lat = res[0].geometry.location.lat();
+          b.lng = res[0].geometry.location.lng();
+          b.geocoded = true; addMarker(p,i);
+        } else {
+          // Fallback: Betriebsname + Graz
+          geocoder.geocode({address: b.name+', Graz, Austria', region:'AT'}, (r2,s2) => {
+            if(s2==='OK' && r2?.[0]){
+              b.lat=r2[0].geometry.location.lat(); b.lng=r2[0].geometry.location.lng();
+              b.geocoded=true; addMarker(p,i);
+            } else b.geocoded=true;
+            resolve();
+          }); return;
+        }
+        resolve();
+      });
+    });
+    done++;
+    if(done % 8 === 0) renderSidebar();
+  }
+  const pins = Object.keys(gmarkers).length;
+  setGeoSt(pins + ' Pins auf Karte ✓', true);
+  renderSidebar(); updateStats();
+  showToast('📍 ' + pins + '/' + total + ' Betriebe auf der Karte', '#15803d');
+}
+function setGeoSt(t,d){ document.getElementById('geoText').textContent=t; document.getElementById('geoDot').className='geo-dot'+(d?' done':''); }
+
+// ── STATS ────────────────────────────────────────────────
+function calcStats(){
+  let t=0,d=0,f=0;
+  PAKETE.forEach(p=>{
+    t+=p.betriebe.length;
+    p.betriebe.forEach((_,i)=>{ if(state.checked[p.id+'_'+i]) d++; });
+    if(!state.assignments[p.id]) f++;
+  });
+  return {t,d,f,pct:t>0?Math.round(d/t*100):0};
+}
+function updateStats(){
+  const{t,d,f,pct}=calcStats();
+  document.getElementById('s-total').textContent=t||'—';
+  document.getElementById('s-done').textContent=d;
+  document.getElementById('s-free').textContent=PAKETE.length?f:'—';
+  document.getElementById('gb').style.width=(t?pct:0)+'%';
+  document.getElementById('gp-pct').textContent=t?(pct+' %'):'— %';
+}
+function pSt(p){ const c=p.betriebe.filter((_,i)=>state.checked[p.id+'_'+i]).length; return c===p.betriebe.length&&p.betriebe.length>0?'done':state.assignments[p.id]?'taken':'free'; }
+function pCh(p){ return p.betriebe.filter((_,i)=>state.checked[p.id+'_'+i]).length; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── RENDER ───────────────────────────────────────────────
+function showEmptyState(){
+  document.getElementById('paketList').innerHTML = `
+    <div class="empty-state">
+      <div class="es-icon">📂</div>
+      <h3>Betriebsliste laden</h3>
+      <p>Google Sheet als CSV exportieren:<br><b>Datei → Herunterladen → CSV</b><br>und oben rechts hochladen.</p>
+      <button class="btn bp" onclick="openModal()" style="margin-top:4px">CSV-Datei laden</button>
+      <div style="margin-top:8px"><button class="btn bw" onclick="loadDemo()">Demo-Daten zeigen</button></div>
+    </div>`;
+  setGeoSt('Keine Daten geladen', false);
+}
+
+function renderSidebar(){
+  const list = document.getElementById('paketList');
+  list.innerHTML = '';
+  const vis = PAKETE.filter(p => state.filter==='all' || pSt(p)===state.filter);
+  if(!vis.length){
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:#9ca3af;font-size:12px;font-style:italic">Keine Pakete in diesem Filter</div>';
+    return;
+  }
+  vis.forEach(p => {
+    const st=pSt(p), ch=pCh(p), tot=p.betriebe.length, pct=tot>0?Math.round(ch/tot*100):0;
+    const asgn=state.assignments[p.id], isOpen=state.openPaket===p.id;
+    const nc={done:'done',taken:'taken',free:''}[st];
+    const sl={free:'FREI',taken:'VERGEBEN',done:'ERLEDIGT'}[st];
+    const sc={free:'sf',taken:'st',done:'sd'}[st];
+    const col=PAKET_COLORS[(p.id-1)%PAKET_COLORS.length];
+    const gok=p.betriebe.filter(b=>b.geocoded&&b.lat).length;
+
+    const aBlock = asgn
+      ? `<div class="ai"><span>👤 <strong>${esc(asgn.kandidat)}</strong> — 📅 ${esc(asgn.datum)}</span><button class="btn bw" onclick="unassign(${p.id},event)">Freigeben</button></div>`
+      : `<div class="af"><h4>✋ Paket übernehmen</h4>
+           <div class="fr">
+             <input class="fi" placeholder="Dein Name" id="n${p.id}">
+             <input class="fi" placeholder="Datum z.B. 15.05." id="d${p.id}" style="max-width:105px">
+           </div>
+           <button class="btn bp" onclick="assign(${p.id},event)">Übernehmen</button>
+         </div>`;
+
+    const bRows = p.betriebe.map((b,i) => {
+      const ck=!!state.checked[p.id+'_'+i];
+      return `<div class="bi">
+        <div class="bc${ck?' chk':''}" onclick="tc(${p.id},${i},event)"></div>
+        <span class="bn${ck?' ct':''}">${esc(b.name)}</span>
+        <span class="bi-addr">${esc(b.adresse.split(',')[0])}</span>
+        <span class="bt">${esc(b.typ)}</span>
+        <span style="font-size:9px;flex-shrink:0">${b.geocoded&&b.lat?'📍':'⏳'}</span>
+      </div>`;
+    }).join('');
+
+    const card = document.createElement('div');
+    card.className = 'pc' + (isOpen?' open sel':'');
+    card.innerHTML = `
+      <div class="ph" onclick="tp(${p.id})">
+        <div class="pnum ${nc}" style="${nc?'':'background:'+col}">${p.id}</div>
+        <div class="pi">
+          <h3>${esc(p.name)}</h3>
+          <p>${esc(p.bezirk)||'Graz'} · ${tot} Betriebe · 📍${gok}/${tot}</p>
+        </div>
+        <span class="ps ${sc}">${sl}</span>
+      </div>
+      <div class="pp"><div class="pbw"><div class="pbf" style="width:${pct}%"></div></div><span class="pt">${ch}/${tot}</span></div>
+      <div class="pb"><div class="bl">${bRows}</div>${aBlock}</div>`;
+    list.appendChild(card);
+  });
+}
+
+// ── INTERACTIONS ─────────────────────────────────────────
+function tp(id){
+  state.openPaket = state.openPaket===id ? null : id;
+  renderSidebar();
+  if(gmap && state.openPaket===id){
+    const p=PAKETE.find(x=>x.id===id); if(!p) return;
+    const pts=p.betriebe.filter(b=>b.lat);
+    if(pts.length===1){ gmap.setCenter({lat:pts[0].lat,lng:pts[0].lng}); gmap.setZoom(17); }
+    else if(pts.length>1){ const b=new google.maps.LatLngBounds(); pts.forEach(x=>b.extend({lat:x.lat,lng:x.lng})); gmap.fitBounds(b,50); }
+  }
+}
+function assign(id,e){
+  e.stopPropagation();
+  const n=document.getElementById('n'+id)?.value?.trim(), d=document.getElementById('d'+id)?.value?.trim();
+  if(!n) return showToast('Bitte Namen eingeben','#c8102e');
+  if(!d) return showToast('Bitte Datum eingeben','#c8102e');
+  state.assignments[id]={kandidat:n,datum:d}; saveState(); renderSidebar(); updateStats(); refreshAll();
+  showToast('✅ Paket '+id+' von '+n+' übernommen!','#15803d');
+}
+function unassign(id,e){
+  e.stopPropagation(); if(!confirm('Paket freigeben?')) return;
+  delete state.assignments[id]; saveState(); renderSidebar(); updateStats(); refreshAll();
+  showToast('Paket freigegeben','#c2620a');
+}
+function tc(pid,bi,e){
+  e.stopPropagation(); const k=pid+'_'+bi;
+  state.checked[k]=!state.checked[k]; saveState(); updateStats(); state.openPaket=pid;
+  renderSidebar(); refreshMarker(pid,bi);
+  if(state.checked[k]){ const b=PAKETE.find(x=>x.id===pid)?.betriebe[bi]; showToast('✓ '+b?.name+' besucht!','#15803d'); }
+}
+document.querySelectorAll('.fp').forEach(fp=>{
+  fp.addEventListener('click',()=>{
+    document.querySelectorAll('.fp').forEach(x=>x.classList.remove('active'));
+    fp.classList.add('active'); state.filter=fp.dataset.f; renderSidebar();
+  });
+});
+function showToast(msg,col='#15803d'){
+  const t=document.getElementById('toast'); t.textContent=msg; t.style.background=col;
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── GOOGLE MAPS ──────────────────────────────────────────
+function initMap(){
+  gmap = new google.maps.Map(document.getElementById('map'),{
+    center:{lat:47.0707,lng:15.4391}, zoom:13, mapTypeId:'roadmap',
+    mapTypeControl:false, streetViewControl:true, fullscreenControl:true,
+    zoomControl:true, gestureHandling:'cooperative',
+    styles:[
+      {featureType:'poi.business',stylers:[{visibility:'off'}]},
+      {featureType:'poi',elementType:'labels.icon',stylers:[{visibility:'off'}]},
+      {featureType:'transit',elementType:'labels',stylers:[{visibility:'off'}]},
+      {featureType:'water',elementType:'geometry',stylers:[{color:'#c9e9f6'}]},
+      {featureType:'landscape',elementType:'geometry',stylers:[{color:'#f4f1eb'}]},
+      {featureType:'road',elementType:'geometry',stylers:[{color:'#ffffff'}]},
+      {featureType:'road.arterial',elementType:'geometry',stylers:[{color:'#ffe0b2'}]},
+      {featureType:'road.highway',elementType:'geometry',stylers:[{color:'#ffcc80'}]},
+    ]
+  });
+  infoWin  = new google.maps.InfoWindow({maxWidth:260});
+  geocoder = new google.maps.Geocoder();
+
+  // Load persisted data on startup
+  Promise.all([loadState(), loadRows()]).then(([_, rows]) => {
+    if(rows && rows.length){
+      buildPakete(rows);
+      const total = rows.length;
+      document.getElementById('uploadBtn').textContent = '✅ ' + total + ' Betriebe';
+      document.getElementById('uploadBtn').classList.add('loaded');
+      geocodeAll();
+    } else {
+      showEmptyState();
+    }
+  });
+}
+
+function mCol(pid,bi){ if(state.checked[pid+'_'+bi]) return'#15803d'; if(state.assignments[pid]) return'#c2620a'; return PAKET_COLORS[(pid-1)%PAKET_COLORS.length]; }
+
+function addMarker(p,i){
+  const b=p.betriebe[i]; if(!b||!b.lat||!b.lng) return;
+  const k=p.id+'_'+i; if(gmarkers[k]) gmarkers[k].setMap(null);
+  const ck=!!state.checked[k], col=mCol(p.id,i), sz=ck?30:22;
+  const inner = ck
+    ? `<path d="M${sz*.25} ${sz*.5}L${sz*.45} ${sz*.68}L${sz*.75} ${sz*.32}" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
+    : `<circle cx="${sz/2}" cy="${sz/2}" r="3" fill="rgba(255,255,255,0.6)"/>`;
+  const svg = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}"><circle cx="${sz/2}" cy="${sz/2}" r="${sz/2-2}" fill="${col}" stroke="white" stroke-width="2.5"/>${inner}</svg>`);
+  const m = new google.maps.Marker({
+    position:{lat:b.lat,lng:b.lng}, map:gmap,
+    icon:{url:'data:image/svg+xml;charset=UTF-8,'+svg, scaledSize:new google.maps.Size(sz,sz), anchor:new google.maps.Point(sz/2,sz/2)},
+    title:b.name, zIndex:ck?20:10
+  });
+  m.addListener('click',()=>{
+    const gmUrl=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.adresse)}`;
+    const rtUrl=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(b.adresse)}`;
+    infoWin.setContent(`
+      <div style="font-family:'Open Sans',sans-serif;padding:4px 2px;min-width:190px">
+        <div style="font-size:9px;font-family:'Montserrat',sans-serif;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#c8102e;margin-bottom:4px">Paket ${p.id} · ${esc(p.name)}</div>
+        <div style="font-size:15px;font-weight:700;color:#0f1f3d;margin-bottom:2px">${esc(b.name)}</div>
+        <div style="font-size:11px;color:#6b7280;margin-bottom:2px">${esc(b.typ)}</div>
+        <div style="font-size:11px;color:#6b7280;margin-bottom:8px">📍 ${esc(b.adresse)}</div>
+        <div style="display:flex;gap:10px">
+          <a href="${gmUrl}" target="_blank" style="font-size:11px;font-weight:700;color:#1565c0;font-family:'Montserrat',sans-serif;text-decoration:none">🗺 Maps</a>
+          <a href="${rtUrl}" target="_blank" style="font-size:11px;font-weight:700;color:#15803d;font-family:'Montserrat',sans-serif;text-decoration:none">🚶 Route</a>
+        </div>
+      </div>`);
+    infoWin.open(gmap,m);
+    state.openPaket=p.id; renderSidebar();
+    setTimeout(()=>document.querySelectorAll('.pc').forEach(c=>{
+      if(c.querySelector('.pnum')?.textContent.trim()==String(p.id)) c.scrollIntoView({behavior:'smooth',block:'nearest'});
+    }),100);
+  });
+  gmarkers[k]=m;
+}
+function refreshMarker(pid,bi){ const p=PAKETE.find(x=>x.id===pid); if(p) addMarker(p,bi); }
+function refreshAll(){ Object.values(gmarkers).forEach(m=>m.setMap(null)); gmarkers={}; PAKETE.forEach(p=>p.betriebe.forEach((_,i)=>addMarker(p,i))); }
+
+// ── DEMO DATA ────────────────────────────────────────────
+function loadDemo(){
+  const csv = `paket_nr,paket_name,bezirk,name,typ,adresse,plz,stadt
+1,Herrengasse,Innenstadt,Bären-Apotheke,Apotheke,Herrengasse 11,8010,Graz
+1,Herrengasse,Innenstadt,dm Drogeriemarkt,Drogerie,Herrengasse 18,8010,Graz
+1,Herrengasse,Innenstadt,Bank Austria,Bank,Herrengasse 5,8010,Graz
+1,Herrengasse,Innenstadt,Bäckerei Sorger,Bäckerei,Herrengasse 3,8010,Graz
+1,Herrengasse,Innenstadt,Mango Mode,Mode,Herrengasse 16,8010,Graz
+1,Herrengasse,Innenstadt,Christ Schmuck,Schmuck,Herrengasse 6,8010,Graz
+2,Hauptplatz & Sackstraße,Innenstadt,Stadt Apotheke Graz,Apotheke,Hauptplatz 15,8010,Graz
+2,Hauptplatz & Sackstraße,Innenstadt,Kastner & Öhler,Kaufhaus,Sackstraße 7,8010,Graz
+2,Hauptplatz & Sackstraße,Innenstadt,Café Frankowitsch,Café,Stempfergasse 2,8010,Graz
+2,Hauptplatz & Sackstraße,Innenstadt,Trafik Hauptplatz,Trafik,Hauptplatz 3,8010,Graz
+3,Annenstraße,Lend,BP Tankstelle,Tankstelle,Annenstraße 2,8020,Graz
+3,Annenstraße,Lend,Döner Palace,Imbiss,Annenstraße 12,8020,Graz
+3,Annenstraße,Lend,Apotheke Lend,Apotheke,Volksgartenstraße 20,8020,Graz
+3,Annenstraße,Lend,McFit Fitnessstudio,Fitness,Annenstraße 34,8020,Graz
+4,Lendplatz,Lend,Café Lendwirbel,Café,Lendplatz 5,8020,Graz
+4,Lendplatz,Lend,Denn's Biomarkt,Lebensmittel,Mariahilferstraße 23,8020,Graz
+4,Lendplatz,Lend,Galerie Grün,Galerie,Mariahilferstraße 17,8020,Graz`;
+  const rows = parseCSV(csv);
+  saveRows(rows);
+  buildPakete(rows);
+  document.getElementById('uploadBtn').textContent = '✅ Demo-Daten';
+  document.getElementById('uploadBtn').classList.add('loaded');
+  showToast('Demo-Daten geladen', '#c2620a');
+  geocodeAll();
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTbJWxH9znrHW8K-qPEgDgYBUG82npt6k&callback=initMap&language=de&region=AT"></script>
+</body>
+</html>
