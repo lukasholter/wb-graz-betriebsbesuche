@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>WB Graz – Betriebsbesuche GRW26</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red:#c8102e; --darkred:#8b0a20; --navy:#0f1f3d;
+  --white:#fff; --bg:#f4f1eb; --bd:#e0dbd0;
+  --tx:#0f1f3d; --mu:#6b7280; --green:#15803d; --orange:#c2620a;
+  --rad:10px;
+}
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; overflow:hidden; }
+body { font-family:'Open Sans',sans-serif; background:var(--bg); color:var(--tx); }
+
+/* ── HEADER ── */
+.hdr {
+  background:var(--red);
+  border-bottom:3px solid var(--darkred);
+  padding:0 16px;
+  height:54px;
+  display:flex; align-items:center; gap:10px;
+  position:fixed; top:0; left:0; right:0; z-index:1000;
+  box-shadow:0 2px 12px rgba(0,0,0,.3);
+}
+.hdr svg { height:30px; width:auto; flex-shrink:0; }
+.hdr-text { flex:1; min-width:0; }
+.hdr-text h1 { font-family:'Montserrat',sans-serif; font-size:13px; font-weight:800; color:#fff; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hdr-text p { font-size:9px; color:rgba(255,255,255,.6); }
+.hdr-actions { display:flex; gap:8px; align-items:center; flex-shrink:0; }
+.hdr-btn { background:rgba(0,0,0,.2); border:1px solid rgba(255,255,255,.25); color:#fff; border-radius:6px; padding:5px 9px; font-size:10px; font-weight:700; font-family:'Montserrat',sans-serif; cursor:pointer; white-space:nowrap; }
+.hdr-btn.connected { border-color:rgba(255,255,255,.4); color:#86efac; background:rgba(21,128,61,.3); }
+/* sync dot */
+.sync-dot { width:7px; height:7px; border-radius:50%; background:#86efac; box-shadow:0 0 5px #86efac; flex-shrink:0; }
+.sync-dot.off { background:#fca5a5; box-shadow:none; }
+.sync-dot.syncing { animation:sdpulse .7s infinite; }
+@keyframes sdpulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+/* ── PROGRESS STRIP ── */
+.prog-strip {
+  position:fixed; top:57px; left:0; right:0; z-index:999;
+  background:var(--darkred);
+  height:18px;
+  display:flex; align-items:center; gap:10px;
+  padding:0 16px;
+}
+.prog-label { font-size:8px; color:rgba(255,255,255,.45); font-family:'Montserrat',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:.5px; white-space:nowrap; }
+.prog-bar-w { flex:1; height:3px; background:rgba(0,0,0,.3); border-radius:2px; overflow:hidden; }
+.prog-bar-f { height:100%; background:rgba(255,255,255,.75); border-radius:2px; transition:width .6s; }
+.prog-pct { font-size:9px; color:rgba(255,255,255,.75); font-family:'Montserrat',sans-serif; font-weight:700; white-space:nowrap; }
+
+/* ── MAIN LAYOUT ── */
+.app {
+  position:fixed;
+  top:75px; /* header + progress strip */
+  bottom:0; left:0; right:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+/* ── DESKTOP: side-by-side ── */
+@media (min-width:768px) {
+  .app {
+    flex-direction:row;
+  }
+  .sidebar {
+    width:400px;
+    height:100%;
+    overflow-y:auto;
+    border-right:1px solid var(--bd);
+    flex-shrink:0;
+  }
+  .map-area {
+    flex:1;
+    height:100%;
+    position:relative;
+  }
+  /* On desktop, paket detail with map is shown in map-area */
+  .paket-detail { display:none!important; } /* handled differently on desktop */
+  .map-area { display:block!important; }
+}
+
+/* ── MOBILE: stacked ── */
+@media (max-width:767px) {
+  .sidebar { flex:1; overflow-y:auto; }
+  .map-area { display:none; } /* hidden on mobile, shown in detail */
+}
+
+/* ── SIDEBAR ── */
+.sidebar { background:#fff; }
+.sidebar-inner { padding:10px; display:flex; flex-direction:column; gap:8px; }
+
+/* Global stats bar */
+.stats-bar {
+  background:var(--navy);
+  padding:10px 16px;
+  display:flex; gap:10px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  flex-shrink:0;
+}
+.stat-item { flex:1; text-align:center; }
+.stat-item .n { font-family:'Montserrat',sans-serif; font-size:18px; font-weight:900; color:#fff; line-height:1; }
+.stat-item .l { font-size:8px; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.5px; font-family:'Montserrat',sans-serif; }
+
+/* Filter bar */
+.filter-bar {
+  display:flex; gap:5px; padding:8px 10px;
+  background:#fafaf7; border-bottom:1px solid var(--bd);
+  flex-shrink:0; overflow-x:auto;
+}
+.filter-bar::-webkit-scrollbar { display:none; }
+.fp { background:#eeebe4; border:1px solid #ddd; color:var(--mu); border-radius:20px; padding:4px 11px; font-size:10px; font-weight:700; font-family:'Montserrat',sans-serif; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+.fp.active { background:var(--red); border-color:var(--red); color:#fff; }
+
+/* Empty state */
+.empty-state { padding:40px 20px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:10px; }
+.empty-state .icon { font-size:44px; }
+.empty-state h3 { font-family:'Montserrat',sans-serif; font-size:15px; font-weight:800; color:var(--navy); }
+.empty-state p { font-size:12px; color:var(--mu); line-height:1.6; max-width:260px; }
+
+/* ── PAKET CARD (list view) ── */
+.pc {
+  background:#fff; border:1.5px solid var(--bd); border-radius:var(--rad);
+  overflow:hidden; cursor:pointer;
+  box-shadow:0 1px 4px rgba(0,0,0,.05);
+  transition:border-color .15s, box-shadow .15s, transform .1s;
+  active:transform:scale(.98);
+}
+.pc:active { transform:scale(.99); }
+.pc.active-card { border-color:var(--red); box-shadow:0 0 0 2px rgba(200,16,46,.12); }
+.ph { padding:11px 12px; display:flex; align-items:center; gap:9px; }
+.pnum { color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; font-size:12px; width:32px; height:32px; border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.pnum.done { background:var(--green)!important; }
+.pnum.taken { background:var(--orange)!important; }
+.pi { flex:1; min-width:0; }
+.pi h3 { font-family:'Montserrat',sans-serif; font-size:12px; font-weight:700; color:var(--tx); line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pi p { font-size:10px; color:var(--mu); margin-top:1px; }
+.ps { font-size:9px; padding:3px 7px; border-radius:20px; font-weight:700; flex-shrink:0; font-family:'Montserrat',sans-serif; letter-spacing:.3px; }
+.sf { background:#dcfce7; color:#15803d; border:1px solid #86efac; }
+.st { background:#fef3c7; color:#92400e; border:1px solid #fcd34d; }
+.sd { background:#dcfce7; color:#15803d; border:1px solid #4ade80; }
+.pp { padding:0 12px 9px; display:flex; align-items:center; gap:7px; }
+.pbw { flex:1; height:3px; background:#eeebe4; border-radius:2px; overflow:hidden; }
+.pbf { height:100%; background:var(--green); border-radius:2px; transition:width .4s; }
+.pt { font-size:10px; color:var(--mu); flex-shrink:0; min-width:28px; text-align:right; font-family:'Montserrat',sans-serif; font-weight:600; }
+/* chevron */
+.chevron { font-size:16px; color:#ccc; transition:transform .25s; flex-shrink:0; }
+.pc.active-card .chevron { transform:rotate(90deg); color:var(--red); }
+
+/* ── PAKET DETAIL (mobile: overlay; desktop: inline) ── */
+/* Mobile: full-screen overlay sliding in from right */
+.paket-detail {
+  position:fixed;
+  top:75px; bottom:0; left:0; right:0;
+  background:#f4f1eb;
+  z-index:500;
+  display:flex; flex-direction:column;
+  transform:translateX(100%);
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+  overflow:hidden;
+}
+.paket-detail.open { transform:translateX(0); }
+
+/* Detail header */
+.det-hdr {
+  background:var(--red);
+  padding:10px 14px;
+  display:flex; align-items:center; gap:10px;
+  flex-shrink:0;
+}
+.back-btn {
+  background:rgba(0,0,0,.2); border:none; color:#fff;
+  border-radius:7px; width:32px; height:32px;
+  font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.det-title { flex:1; min-width:0; }
+.det-title h2 { font-family:'Montserrat',sans-serif; font-size:13px; font-weight:800; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.det-title p { font-size:9px; color:rgba(255,255,255,.65); margin-top:1px; }
+.det-badge { font-size:9px; padding:3px 8px; border-radius:20px; font-weight:700; font-family:'Montserrat',sans-serif; background:rgba(255,255,255,.2); color:#fff; flex-shrink:0; }
+
+/* Mini map in detail */
+.mini-map-wrap {
+  height:180px;
+  position:relative;
+  flex-shrink:0;
+  overflow:hidden;
+}
+.mini-map-wrap #detailMap { width:100%; height:100%; }
+/* expand map button */
+.expand-map-btn {
+  position:absolute; top:8px; right:8px;
+  background:rgba(255,255,255,.9); border:none;
+  border-radius:6px; padding:4px 8px;
+  font-size:9px; font-weight:700; font-family:'Montserrat',sans-serif;
+  color:var(--navy); cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.15);
+}
+
+/* assign strip */
+.assign-strip {
+  background:var(--navy);
+  padding:8px 14px;
+  display:flex; align-items:center; gap:8px;
+  flex-shrink:0;
+}
+.assign-strip .who { font-size:11px; color:rgba(255,255,255,.8); flex:1; font-family:'Montserrat',sans-serif; }
+.assign-strip .who b { color:#fff; }
+.assign-btn { background:var(--red); border:none; color:#fff; border-radius:6px; padding:6px 12px; font-size:10px; font-weight:700; font-family:'Montserrat',sans-serif; cursor:pointer; flex-shrink:0; }
+.assign-btn.release { background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); font-size:9px; }
+
+/* Betriebe list in detail */
+.det-list { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:6px; }
+.det-list::-webkit-scrollbar { width:3px; }
+.det-list::-webkit-scrollbar-thumb { background:#ddd; border-radius:2px; }
+.bi {
+  background:#fff; border:1.5px solid var(--bd); border-radius:8px;
+  padding:10px 12px; display:flex; align-items:center; gap:10px;
+  transition:all .15s;
+}
+.bi.checked { opacity:.6; border-color:#dcfce7; }
+.bi:active { transform:scale(.98); }
+.bc {
+  width:22px; height:22px; border:2px solid #d1d5db; border-radius:5px;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; cursor:pointer; transition:all .15s;
+}
+.bc:active { transform:scale(.88); }
+.bc.chk { background:var(--green); border-color:var(--green); }
+.bc.chk::after { content:'✓'; color:#fff; font-size:13px; font-weight:700; }
+.b-info { flex:1; min-width:0; }
+.b-name { font-size:13px; font-weight:600; color:var(--tx); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.b-name.done { text-decoration:line-through; color:#9ca3af; }
+.b-meta { font-size:10px; color:var(--mu); margin-top:2px; display:flex; gap:5px; align-items:center; }
+.b-type { font-size:9px; background:#eeebe4; padding:1px 5px; border-radius:3px; font-family:'Montserrat',sans-serif; font-weight:600; }
+.b-nav { background:none; border:none; color:var(--red); font-size:20px; cursor:pointer; padding:0 2px; flex-shrink:0; line-height:1; }
+.b-geo { font-size:10px; flex-shrink:0; }
+
+/* Map full-screen overlay */
+.map-fullscreen {
+  position:fixed; inset:0; z-index:900;
+  display:none; flex-direction:column;
+}
+.map-fullscreen.open { display:flex; }
+.map-fs-hdr { background:var(--red); padding:10px 14px; display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.map-fs-title { font-family:'Montserrat',sans-serif; font-size:13px; font-weight:700; color:#fff; flex:1; }
+.map-fs-close { background:rgba(0,0,0,.2); border:none; color:#fff; border-radius:7px; width:32px; height:32px; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+#fullMap { flex:1; }
+
+/* Desktop: map-area */
+.map-area { background:#e8f4e8; }
+#desktopMap { width:100%; height:100%; }
+
+/* ── ASSIGN MODAL ── */
+.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:2000; display:flex; align-items:flex-end; justify-content:center; opacity:0; pointer-events:none; transition:opacity .2s; }
+.modal-bg.open { opacity:1; pointer-events:all; }
+.modal { background:#fff; border-radius:16px 16px 0 0; padding:20px; width:100%; max-width:500px; box-shadow:0 -8px 32px rgba(0,0,0,.2); }
+.modal-handle { width:32px; height:3px; background:#e0dbd0; border-radius:2px; margin:0 auto 16px; }
+.modal h3 { font-family:'Montserrat',sans-serif; font-size:16px; font-weight:800; color:var(--navy); margin-bottom:14px; }
+.fi { background:#f4f1eb; border:1.5px solid var(--bd); color:var(--tx); border-radius:8px; padding:10px 12px; font-size:14px; font-family:'Open Sans',sans-serif; width:100%; margin-bottom:10px; transition:border-color .15s; }
+.fi:focus { outline:none; border-color:var(--red); }
+.fi::placeholder { color:#9ca3af; }
+.modal-btns { display:flex; gap:8px; }
+.btn { padding:12px; border-radius:8px; font-size:13px; font-weight:700; font-family:'Montserrat',sans-serif; cursor:pointer; border:none; flex:1; letter-spacing:.3px; }
+.btn-red { background:var(--red); color:#fff; }
+.btn-grey { background:#f4f1eb; color:#6b7280; border:1.5px solid var(--bd); }
+
+/* ── UPLOAD MODAL ── */
+.upload-modal { background:#fff; border-radius:16px 16px 0 0; padding:24px; width:100%; max-width:500px; box-shadow:0 -8px 32px rgba(0,0,0,.2); }
+.drop-zone { border:2px dashed #d1d5db; border-radius:10px; padding:28px 16px; text-align:center; cursor:pointer; transition:all .2s; background:#fafaf7; margin-bottom:12px; }
+.drop-zone.drag { border-color:var(--red); background:#fdecea; }
+.drop-zone .dz-icon { font-size:32px; margin-bottom:8px; }
+.drop-zone h4 { font-family:'Montserrat',sans-serif; font-weight:700; font-size:13px; color:var(--navy); margin-bottom:3px; }
+.drop-zone p { font-size:11px; color:var(--mu); }
+.upload-hint { background:#f4f1eb; border-radius:7px; padding:10px 12px; font-size:11px; color:#374151; line-height:1.8; margin-bottom:12px; }
+.upload-hint b { color:var(--red); font-family:'Montserrat',sans-serif; }
+.upload-hint code { background:#e0dbd0; padding:1px 4px; border-radius:3px; font-size:10px; }
+.upload-result { padding:8px 12px; border-radius:7px; font-size:11px; font-family:'Montserrat',sans-serif; font-weight:600; margin-bottom:10px; display:none; }
+.upload-result.ok { background:#dcfce7; color:#15803d; border:1px solid #86efac; }
+.upload-result.err { background:#fdecea; color:var(--red); border:1px solid #fca5a5; }
+
+/* ── TOAST ── */
+.toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--green); color:#fff; padding:10px 20px; border-radius:20px; font-size:12px; font-weight:700; font-family:'Montserrat',sans-serif; z-index:9999; opacity:0; transition:all .3s cubic-bezier(.34,1.56,.64,1); white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,.2); }
+.toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+/* Spinner */
+.spinner { width:20px; height:20px; border:2.5px solid #e0dbd0; border-top-color:var(--red); border-radius:50%; animation:spin .7s linear infinite; margin:0 auto 8px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-ph { padding:32px 20px; text-align:center; color:var(--mu); font-family:'Montserrat',sans-serif; font-size:12px; font-weight:600; }
+
+/* Desktop sidebar header */
+.sidebar-hdr { padding:12px 14px 8px; border-bottom:1px solid var(--bd); background:#fafaf7; }
+.sidebar-hdr h2 { font-family:'Montserrat',sans-serif; font-size:11px; font-weight:800; color:var(--navy); letter-spacing:.5px; text-transform:uppercase; margin-bottom:6px; }
+.geo-st { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--mu); }
+.geo-dot { width:6px; height:6px; border-radius:50%; background:#ddd; animation:pulse 1.2s infinite; }
+.geo-dot.done { background:var(--green); animation:none; }
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+/* Password screen */
+#pwScreen { position:fixed; inset:0; z-index:99999; background:var(--navy); display:flex; align-items:center; justify-content:center; }
+.pw-box { background:#fff; border-radius:16px; padding:36px 28px; width:320px; max-width:90vw; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.4); }
+.pw-box svg { height:44px; margin-bottom:14px; }
+.pw-box .pw-brand { font-size:10px; font-weight:700; color:var(--red); letter-spacing:1px; text-transform:uppercase; font-family:'Montserrat',sans-serif; margin-bottom:4px; }
+.pw-box h2 { font-family:'Montserrat',sans-serif; font-size:18px; font-weight:800; color:var(--navy); margin-bottom:5px; }
+.pw-box p { font-size:11px; color:var(--mu); margin-bottom:20px; }
+.pw-input { width:100%; padding:12px 14px; border:2px solid var(--bd); border-radius:8px; font-size:15px; font-family:'Montserrat',sans-serif; text-align:center; outline:none; margin-bottom:8px; transition:border-color .2s; letter-spacing:2px; }
+.pw-input:focus { border-color:var(--red); }
+.pw-err { color:var(--red); font-size:11px; font-weight:600; min-height:16px; margin-bottom:6px; font-family:'Montserrat',sans-serif; }
+.pw-btn { width:100%; padding:13px; background:var(--red); color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:800; font-family:'Montserrat',sans-serif; cursor:pointer; letter-spacing:.5px; }
+.pw-btn:active { background:var(--darkred); }
+</style>
+</head>
+<body>
+
+<!-- PASSWORD SCREEN -->
+<div id="pwScreen">
+  <div class="pw-box">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 219.65 224.1">
+      <path d="M58.31,68.62h20.12c.74,0,1.38.53,1.53,1.27l19.9,96.7c.18.85-.46,1.65-1.32,1.65h-23.51c-4.71,0-8.78-3.37-9.75-8.07l-16.17-78.59-.15-.74c-1.53-6.21,3.08-12.23,9.35-12.23M90.02,68.62h30.33c.74,0,1.38.53,1.53,1.27l19.77,96.06c.24,1.18-.64,2.3-1.83,2.3h-29.68c-.74,0-1.38-.53-1.53-1.27l-19.9-96.7c-.18-.86.46-1.66,1.32-1.66M131.96,68.62h29.63c5.73,0,9.67,4.84,9.64,9.82,0,.78-.45,3.15-.45,3.15l-16.17,78.59c-.41,1.98-1.36,3.72-2.68,5.07-.62.63-1.69.27-1.87-.6l-19.42-94.37c-.18-.85.46-1.65,1.32-1.65M109.82,224.1c60.65,0,109.82-50.17,109.82-112.05S170.48,0,109.82,0,0,50.17,0,112.05s49.17,112.05,109.82,112.05" fill="#c8102e"/>
+    </svg>
+    <div class="pw-brand">Wirtschaftsbund Graz</div>
+    <h2>Betriebsbesuche GRW26</h2>
+    <p>Bitte Passwort eingeben</p>
+    <input class="pw-input" type="password" id="pwInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPw()">
+    <div class="pw-err" id="pwErr"></div>
+    <button class="pw-btn" onclick="checkPw()">Einloggen</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="hdr">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 219.65 224.1">
+    <path d="M58.31,68.62h20.12c.74,0,1.38.53,1.53,1.27l19.9,96.7c.18.85-.46,1.65-1.32,1.65h-23.51c-4.71,0-8.78-3.37-9.75-8.07l-16.17-78.59-.15-.74c-1.53-6.21,3.08-12.23,9.35-12.23M90.02,68.62h30.33c.74,0,1.38.53,1.53,1.27l19.77,96.06c.24,1.18-.64,2.3-1.83,2.3h-29.68c-.74,0-1.38-.53-1.53-1.27l-19.9-96.7c-.18-.86.46-1.66,1.32-1.66M131.96,68.62h29.63c5.73,0,9.67,4.84,9.64,9.82,0,.78-.45,3.15-.45,3.15l-16.17,78.59c-.41,1.98-1.36,3.72-2.68,5.07-.62.63-1.69.27-1.87-.6l-19.42-94.37c-.18-.85.46-1.65,1.32-1.65M109.82,224.1c60.65,0,109.82-50.17,109.82-112.05S170.48,0,109.82,0,0,50.17,0,112.05s49.17,112.05,109.82,112.05" fill="#fff"/>
+  </svg>
+  <div class="hdr-text">
+    <h1>Betriebsbesuche GRW26</h1>
+    <p>Wirtschaftsbund Graz</p>
+  </div>
+  <div class="hdr-actions">
+    <div class="sync-dot" id="syncDot"></div>
+    <button class="hdr-btn" id="uploadBtn" onclick="openUpload()">📂</button>
+  </div>
+</header>
+
+<!-- PROGRESS STRIP -->
+<div class="prog-strip">
+  <span class="prog-label">Fortschritt</span>
+  <div class="prog-bar-w"><div class="prog-bar-f" id="progBar" style="width:0%"></div></div>
+  <span class="prog-pct" id="progPct">— %</span>
+</div>
+
+<!-- MAIN APP -->
+<div class="app">
+
+  <!-- SIDEBAR: Paket list -->
+  <div class="sidebar" id="sidebar">
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-item"><div class="n" id="sTot">—</div><div class="l">Betriebe</div></div>
+      <div class="stat-item"><div class="n" id="sDone" style="color:#4ade80">0</div><div class="l">Besucht ✓</div></div>
+      <div class="stat-item"><div class="n" id="sFree">—</div><div class="l">Pakete frei</div></div>
+    </div>
+    <!-- Filter -->
+    <div class="filter-bar">
+      <span class="fp active" data-f="all">Alle</span>
+      <span class="fp" data-f="free">Frei</span>
+      <span class="fp" data-f="taken">Vergeben</span>
+      <span class="fp" data-f="done">Erledigt</span>
+    </div>
+    <!-- Desktop only: geo status -->
+    <div class="sidebar-hdr" style="display:none" id="deskSideHdr">
+      <h2>📦 Besuchs-Pakete</h2>
+      <div class="geo-st"><div class="geo-dot" id="geoDotDesk"></div><span id="geoTextDesk">—</span></div>
+    </div>
+    <!-- List -->
+    <div class="sidebar-inner" id="paketList">
+      <div class="loading-ph"><div class="spinner"></div>Verbinde mit Firebase…</div>
+    </div>
+  </div>
+
+  <!-- MAP AREA (desktop only) -->
+  <div class="map-area" id="mapArea">
+    <div id="desktopMap"></div>
+  </div>
+
+</div>
+
+<!-- PAKET DETAIL (mobile overlay) -->
+<div class="paket-detail" id="paketDetail">
+  <div class="det-hdr">
+    <button class="back-btn" onclick="closeDetail()">‹</button>
+    <div class="det-title">
+      <h2 id="detTitle">—</h2>
+      <p id="detSub">—</p>
+    </div>
+    <div class="det-badge" id="detBadge">FREI</div>
+  </div>
+
+  <!-- Mini map -->
+  <div class="mini-map-wrap" id="miniMapWrap">
+    <div id="detailMap"></div>
+    <button class="expand-map-btn" onclick="openFullMap()">⛶ Vollbild</button>
+  </div>
+
+  <!-- Assign strip -->
+  <div class="assign-strip" id="assignStrip">
+    <div class="who" id="assignWho">Noch nicht vergeben</div>
+    <button class="assign-btn" id="assignBtn" onclick="openAssignModal()">Paket übernehmen</button>
+  </div>
+
+  <!-- Betriebe list -->
+  <div class="det-list" id="detList"></div>
+</div>
+
+<!-- FULLSCREEN MAP -->
+<div class="map-fullscreen" id="mapFullscreen">
+  <div class="map-fs-hdr">
+    <button class="map-fs-close" onclick="closeFullMap()">‹</button>
+    <div class="map-fs-title" id="mapFsTitle">Karte</div>
+  </div>
+  <div id="fullMap"></div>
+</div>
+
+<!-- ASSIGN MODAL -->
+<div class="modal-bg" id="assignModal" onclick="if(event.target===this)closeAssignModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 id="assignModalTitle">Paket übernehmen</h3>
+    <input class="fi" id="assignName" placeholder="Dein Name" maxlength="40">
+    <input class="fi" id="assignDate" placeholder="Datum z.B. 15.05.2026" maxlength="20">
+    <div class="modal-btns">
+      <button class="btn btn-grey" onclick="closeAssignModal()">Abbrechen</button>
+      <button class="btn btn-red" onclick="confirmAssign()">Übernehmen ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="modal-bg" id="uploadModal" onclick="if(event.target===this)closeUpload()">
+  <div class="upload-modal">
+    <div class="modal-handle"></div>
+    <h3 style="font-family:'Montserrat',sans-serif;font-size:16px;font-weight:800;color:var(--navy);margin-bottom:10px">📂 Betriebsliste laden</h3>
+    <div class="upload-hint">
+      <b>Export aus Google Sheets:</b><br>
+      Datei → Herunterladen → <b>CSV (.csv)</b><br>
+      <b>Spalten:</b> <code>paket_nr, paket_name, bezirk, name, typ, adresse, plz, stadt</code>
+    </div>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="dz-icon">📄</div>
+      <h4>CSV-Datei tippen zum Auswählen</h4>
+      <p>oder hier ablegen</p>
+      <input type="file" id="fileInput" accept=".csv,.txt" style="display:none" onchange="handleFile(event)">
+    </div>
+    <div class="upload-result" id="uploadResult"></div>
+    <button class="btn btn-grey" onclick="closeUpload()" style="width:100%;padding:11px">Schließen</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:      "AIzaSyBeZZqXZpmhjZfCt0pfO-NfuGl-Y2JX_F0",
+  databaseURL: "https://wb-graz-betriebsesuche-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:   "wb-graz-betriebsesuche",
+};
+const PW_HASH   = '170d5f88c43f247b129b7967c2104aba82ccbad7542d1f82751e8eadfbf254d6';
+const PAKET_COLORS = ['#c8102e','#1565c0','#2e7d32','#7b3f00','#4a1472','#00695c','#b91c1c','#0369a1','#3d6b21','#4527a0','#0e7490','#9a3412','#374151','#065f46','#1e3a5f','#6b2d1f'];
+
+// ── Init Firebase immediately (scripts already loaded synchronously) ──
+let db;
+try {
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.database();
+} catch(e) {
+  console.error('Firebase init failed:', e);
+}
+
+// ══════════════════════════════════════════════
+// PASSWORD
+// ══════════════════════════════════════════════
+(function(){
+  const ok = sessionStorage.getItem('wb_auth') === PW_HASH;
+  if(ok) document.getElementById('pwScreen').style.display='none';
+  async function sha256(m){ const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(m)); return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join(''); }
+  window.checkPw = async function(){
+    const h = await sha256(document.getElementById('pwInput').value);
+    if(h===PW_HASH){ sessionStorage.setItem('wb_auth',PW_HASH); document.getElementById('pwScreen').style.display='none'; }
+    else { document.getElementById('pwErr').textContent='Falsches Passwort.'; document.getElementById('pwInput').value=''; document.getElementById('pwInput').focus(); }
+  };
+})();
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+
+let PAKETE = [];
+let state  = { assignments:{}, checked:{}, filter:'all', activePaket:null };
+let maps   = {}; // detailMap, fullMap, desktopMap
+let gmarkers = {};
+let geocoder = null;
+let detailMiniMap = null, fullscreenMap = null, desktopMap = null;
+let currentDetailPaketId = null;
+
+// ══════════════════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════════════════
+function startFirebase(){
+  if(!db){ showToast('Firebase nicht verfügbar','#c8102e'); return; }
+  db.ref('.info/connected').on('value', s=>{
+    const dot = document.getElementById('syncDot');
+    if(s.val()){ dot.className='sync-dot'; }
+    else { dot.className='sync-dot off'; }
+  });
+  db.ref('betriebe').on('value', s=>{
+    const d=s.val();
+    if(d){ buildPakete(Object.values(d)); document.getElementById('uploadBtn').textContent='✅'; document.getElementById('uploadBtn').classList.add('connected'); }
+    else showEmpty();
+  });
+  db.ref('assignments').on('value', s=>{ state.assignments=s.val()||{}; renderList(); updateStats(); refreshAllMarkers(); if(currentDetailPaketId) renderDetailAssign(currentDetailPaketId); });
+  db.ref('checked').on('value', s=>{ state.checked=s.val()||{}; renderList(); updateStats(); refreshAllMarkers(); if(currentDetailPaketId) renderDetailBetriebe(currentDetailPaketId); });
+}
+
+function fbAssign(id,data){ if(!db) return; if(data) db.ref('assignments/'+id).set(data); else db.ref('assignments/'+id).remove(); }
+function fbCheck(k,v){ if(!db) return; if(v) db.ref('checked/'+k).set(true); else db.ref('checked/'+k).remove(); }
+async function fbSave(rows){ const o={}; rows.forEach((r,i)=>o[i]=r); await db.ref('betriebe').set(o); }
+
+// ══════════════════════════════════════════════
+// CSV
+// ══════════════════════════════════════════════
+function openUpload(){ document.getElementById('uploadModal').classList.add('open'); }
+function closeUpload(){ document.getElementById('uploadModal').classList.remove('open'); }
+function handleFile(e){ const f=e.target.files[0]; if(f) processFile(f); e.target.value=''; }
+
+function processFile(file){
+  if(!file.name.match(/\.(csv|txt)$/i)){ showUploadResult('Bitte .csv Datei wählen','err'); return; }
+  showUploadResult('Wird gelesen…','ok');
+  const r=new FileReader();
+  r.onload=async e=>{
+    const rows=parseCSV(e.target.result);
+    if(!rows.length){ showUploadResult('Keine Daten gefunden','err'); return; }
+    showUploadResult('Wird gespeichert…','ok');
+    await fbSave(rows);
+    showUploadResult('✅ '+rows.length+' Betriebe gespeichert!','ok');
+    setTimeout(closeUpload,1200);
+    showToast('✅ '+rows.length+' Betriebe geladen!','#15803d');
+  };
+  r.readAsText(file,'UTF-8');
+}
+
+function showUploadResult(m,t){ const e=document.getElementById('uploadResult'); e.style.display='block'; e.className='upload-result '+t; e.textContent=m; }
+
+// Drag & drop
+document.getElementById('dropZone').addEventListener('dragover',e=>{e.preventDefault();document.getElementById('dropZone').classList.add('drag');});
+document.getElementById('dropZone').addEventListener('dragleave',()=>document.getElementById('dropZone').classList.remove('drag'));
+document.getElementById('dropZone').addEventListener('drop',e=>{e.preventDefault();document.getElementById('dropZone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processFile(f);});
+
+function parseCSV(raw){
+  const lines=raw.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n').filter(l=>l.trim());
+  if(lines.length<2) return[];
+  const headers=splitLine(lines[0]).map(h=>h.trim().toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,''));
+  return lines.slice(1).map(line=>{const v=splitLine(line),row={};headers.forEach((h,i)=>{row[h]=(v[i]||'').trim();});return row;}).filter(r=>Object.values(r).some(v=>v.length>0));
+}
+function splitLine(l){const r=[];let c='',q=false;for(let i=0;i<l.length;i++){const ch=l[i];if(ch==='"'){if(q&&l[i+1]==='"'){c+='"';i++;}else q=!q;}else if(ch===','&&!q){r.push(c);c='';}else c+=ch;}r.push(c);return r;}
+
+function g(row,...keys){for(const k of keys)if(row[k]!==undefined&&row[k]!=='')return row[k];return'';}
+
+function buildPakete(rows){
+  const map={};
+  rows.forEach((r,i)=>{
+    const nr=parseInt(g(r,'paket_nr','paketnr','paket','nr','p_nr'))||1;
+    const pname=g(r,'paket_name','paketname','zone','gebiet')||'Paket '+nr;
+    const bez=g(r,'bezirk','stadtteil','district')||'';
+    const name=g(r,'name','betrieb','firma','bezeichnung')||'Betrieb '+(i+1);
+    const typ=g(r,'typ','type','kategorie','branche','art')||'';
+    const str=g(r,'adresse','adress','strasse','address')||'';
+    const plz=g(r,'plz','postleitzahl','zip')||'8010';
+    const stadt=g(r,'stadt','city','ort')||'Graz';
+    let addr=str; if(plz||stadt) addr+=(addr?', ':'')+[plz,stadt].filter(Boolean).join(' '); if(!addr.toLowerCase().includes('graz')) addr+=', Graz';
+    if(!map[nr]) map[nr]={id:nr,name:pname,bezirk:bez,betriebe:[]};
+    map[nr].betriebe.push({name,typ,adresse:addr,lat:null,lng:null,geocoded:false});
+  });
+  // Preserve geocoded coords
+  const old={};
+  PAKETE.forEach(p=>p.betriebe.forEach((b,i)=>{if(b.lat)old[p.id+'_'+i]={lat:b.lat,lng:b.lng};}));
+  PAKETE=Object.values(map).sort((a,b)=>a.id-b.id);
+  PAKETE.forEach(p=>p.betriebe.forEach((b,i)=>{const k=p.id+'_'+i;if(old[k]){b.lat=old[k].lat;b.lng=old[k].lng;b.geocoded=true;}}));
+  renderList(); updateStats();
+  if(geocoder) geocodeAll();
+}
+
+// ══════════════════════════════════════════════
+// STATS
+// ══════════════════════════════════════════════
+function cs(){let t=0,d=0,f=0;PAKETE.forEach(p=>{t+=p.betriebe.length;p.betriebe.forEach((_,i)=>{if(state.checked[p.id+'_'+i])d++;});if(!state.assignments[p.id])f++;});return{t,d,f,pct:t>0?Math.round(d/t*100):0};}
+function updateStats(){const{t,d,f,pct}=cs();document.getElementById('sTot').textContent=t||'—';document.getElementById('sDone').textContent=d;document.getElementById('sFree').textContent=PAKETE.length?f:'—';document.getElementById('progBar').style.width=(t?pct:0)+'%';document.getElementById('progPct').textContent=t?(pct+' %'):'— %';}
+function pSt(p){const c=p.betriebe.filter((_,i)=>state.checked[p.id+'_'+i]).length;return c===p.betriebe.length&&p.betriebe.length>0?'done':state.assignments[p.id]?'taken':'free';}
+function pCh(p){return p.betriebe.filter((_,i)=>state.checked[p.id+'_'+i]).length;}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ══════════════════════════════════════════════
+// RENDER PAKET LIST
+// ══════════════════════════════════════════════
+function showEmpty(){
+  document.getElementById('paketList').innerHTML=`
+    <div class="empty-state">
+      <div class="icon">📂</div>
+      <h3>Betriebsliste laden</h3>
+      <p>Tippe oben auf 📂 um die CSV-Datei hochzuladen.</p>
+      <button onclick="openUpload()" style="background:var(--red);color:#fff;border:none;border-radius:8px;padding:11px 20px;font-size:13px;font-weight:700;font-family:'Montserrat',sans-serif;margin-top:4px;cursor:pointer">CSV laden</button>
+    </div>`;}
+
+function renderList(){
+  const list=document.getElementById('paketList'); list.innerHTML='';
+  const vis=PAKETE.filter(p=>state.filter==='all'||pSt(p)===state.filter);
+  if(!vis.length){ list.innerHTML='<div style="padding:20px;text-align:center;color:#9ca3af;font-size:12px;font-style:italic">Keine Pakete in diesem Filter</div>'; return; }
+
+  vis.forEach(p=>{
+    const st=pSt(p),ch=pCh(p),tot=p.betriebe.length,pct=tot>0?Math.round(ch/tot*100):0;
+    const asgn=state.assignments[p.id];
+    const nc={done:'done',taken:'taken',free:''}[st];
+    const sl={free:'FREI',taken:'VERGEBEN',done:'ERLEDIGT'}[st];
+    const sc={free:'sf',taken:'st',done:'sd'}[st];
+    const col=PAKET_COLORS[(p.id-1)%PAKET_COLORS.length];
+    const card=document.createElement('div');
+    card.className='pc';
+    card.innerHTML=`
+      <div class="ph">
+        <div class="pnum ${nc}" style="${nc?'':'background:'+col}">${p.id}</div>
+        <div class="pi">
+          <h3>${esc(p.name)}</h3>
+          <p>${esc(p.bezirk)||'Graz'} · ${tot} Betriebe${asgn?' · '+esc(asgn.kandidat):''}</p>
+        </div>
+        <span class="ps ${sc}">${sl}</span>
+        <span class="chevron">›</span>
+      </div>
+      <div class="pp"><div class="pbw"><div class="pbf" style="width:${pct}%"></div></div><span class="pt">${ch}/${tot}</span></div>`;
+    card.addEventListener('click',()=>openDetail(p.id));
+    list.appendChild(card);
+  });
+}
+
+// ══════════════════════════════════════════════
+// PAKET DETAIL
+// ══════════════════════════════════════════════
+function openDetail(paketId){
+  const p=PAKETE.find(x=>x.id===paketId); if(!p) return;
+  currentDetailPaketId=paketId;
+
+  // Update header
+  const st=pSt(p);
+  document.getElementById('detTitle').textContent=p.name;
+  document.getElementById('detSub').textContent=(p.bezirk||'Graz')+' · '+p.betriebe.length+' Betriebe';
+  const badge=document.getElementById('detBadge');
+  badge.textContent={free:'FREI',taken:'VERGEBEN',done:'ERLEDIGT'}[st];
+  badge.style.background=st==='free'?'rgba(255,255,255,.2)':st==='taken'?'rgba(255,165,0,.3)':'rgba(21,128,61,.3)';
+
+  renderDetailAssign(paketId);
+  renderDetailBetriebe(paketId);
+
+  // Open overlay
+  document.getElementById('paketDetail').classList.add('open');
+
+  // Init/update mini map
+  setTimeout(()=>initDetailMap(p), 100);
+}
+
+function closeDetail(){
+  document.getElementById('paketDetail').classList.remove('open');
+  currentDetailPaketId=null;
+}
+
+function renderDetailAssign(paketId){
+  const asgn=state.assignments[paketId];
+  const who=document.getElementById('assignWho');
+  const btn=document.getElementById('assignBtn');
+  if(asgn){
+    who.innerHTML=`👤 <b>${esc(asgn.kandidat)}</b> — 📅 ${esc(asgn.datum)}`;
+    btn.textContent='Freigeben';
+    btn.className='assign-btn release';
+    btn.onclick=()=>{ if(confirm('Paket freigeben?')){ fbAssign(paketId,null); showToast('Paket freigegeben','#c2620a'); } };
+  } else {
+    who.textContent='Noch nicht vergeben';
+    btn.textContent='Paket übernehmen';
+    btn.className='assign-btn';
+    btn.onclick=openAssignModal;
+  }
+}
+
+function renderDetailBetriebe(paketId){
+  const p=PAKETE.find(x=>x.id===paketId); if(!p) return;
+  const list=document.getElementById('detList'); list.innerHTML='';
+  p.betriebe.forEach((b,i)=>{
+    const ck=!!state.checked[paketId+'_'+i];
+    const div=document.createElement('div');
+    div.className='bi'+(ck?' checked':'');
+    const gmUrl=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(b.adresse)}`;
+    div.innerHTML=`
+      <div class="bc${ck?' chk':''}" id="bc_${paketId}_${i}"></div>
+      <div class="b-info">
+        <div class="b-name${ck?' done':''}">${esc(b.name)}</div>
+        <div class="b-meta"><span class="b-type">${esc(b.typ)}</span>${esc(b.adresse.split(',')[0])}</div>
+      </div>
+      <span class="b-geo">${b.geocoded&&b.lat?'📍':'⏳'}</span>
+      <a href="${gmUrl}" target="_blank" class="b-nav" title="Navigation">›</a>`;
+    // check tap
+    div.querySelector('.bc').addEventListener('click',e=>{
+      e.stopPropagation();
+      const k=paketId+'_'+i;
+      const newV=!state.checked[k];
+      fbCheck(k,newV);
+      if(newV) showToast('✓ '+b.name+' besucht!','#15803d');
+    });
+    list.appendChild(div);
+  });
+}
+
+// ── ASSIGN MODAL ──
+let _assigningPaket=null;
+function openAssignModal(){
+  _assigningPaket=currentDetailPaketId;
+  document.getElementById('assignName').value='';
+  document.getElementById('assignDate').value='';
+  document.getElementById('assignModalTitle').textContent='Paket übernehmen';
+  document.getElementById('assignModal').classList.add('open');
+  setTimeout(()=>document.getElementById('assignName').focus(),200);
+}
+function closeAssignModal(){ document.getElementById('assignModal').classList.remove('open'); }
+function confirmAssign(){
+  const n=document.getElementById('assignName').value.trim();
+  const d=document.getElementById('assignDate').value.trim();
+  if(!n) return showToast('Bitte Namen eingeben','#c8102e');
+  if(!d) return showToast('Bitte Datum eingeben','#c8102e');
+  fbAssign(_assigningPaket,{kandidat:n,datum:d});
+  closeAssignModal();
+  showToast('✅ Paket übernommen!','#15803d');
+}
+
+// ══════════════════════════════════════════════
+// MAPS
+// ══════════════════════════════════════════════
+function initDetailMap(p){
+  const el=document.getElementById('detailMap');
+  if(!el) return;
+  const center=getCenter(p);
+  if(!detailMiniMap){
+    detailMiniMap=new google.maps.Map(el,{
+      center, zoom:15, mapTypeId:'roadmap',
+      mapTypeControl:false,streetViewControl:false,fullscreenControl:false,zoomControl:false,
+      gestureHandling:'greedy',
+      styles:MAP_STYLES
+    });
+  } else {
+    detailMiniMap.setCenter(center);
+    detailMiniMap.setZoom(15);
+  }
+  // Add markers for this paket
+  clearDetailMarkers();
+  const pts=[];
+  p.betriebe.forEach((b,i)=>{
+    if(!b.lat) return;
+    pts.push({lat:b.lat,lng:b.lng});
+    const ck=!!state.checked[p.id+'_'+i];
+    const col=ck?'#15803d':PAKET_COLORS[(p.id-1)%PAKET_COLORS.length];
+    const sz=ck?24:18;
+    const m=new google.maps.Marker({
+      position:{lat:b.lat,lng:b.lng},map:detailMiniMap,
+      icon:{url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}"><circle cx="${sz/2}" cy="${sz/2}" r="${sz/2-2}" fill="${col}" stroke="white" stroke-width="2"/>${ck?`<path d="M${sz*.28} ${sz*.5}L${sz*.44} ${sz*.66}L${sz*.72} ${sz*.34}" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`:`<circle cx="${sz/2}" cy="${sz/2}" r="2.5" fill="rgba(255,255,255,.7)"/>`}</svg>`),
+        scaledSize:new google.maps.Size(sz,sz),anchor:new google.maps.Point(sz/2,sz/2)},
+      title:b.name,zIndex:ck?20:10
+    });
+    m._detailMarker=true;
+    if(!gmarkers._detail) gmarkers._detail=[];
+    gmarkers._detail.push(m);
+  });
+  if(pts.length>1){ const b=new google.maps.LatLngBounds(); pts.forEach(pt=>b.extend(pt)); detailMiniMap.fitBounds(b,{top:20,right:20,bottom:20,left:20}); }
+}
+
+function clearDetailMarkers(){
+  (gmarkers._detail||[]).forEach(m=>m.setMap(null));
+  gmarkers._detail=[];
+}
+
+function getCenter(p){
+  const pts=p.betriebe.filter(b=>b.lat);
+  if(!pts.length) return{lat:47.0707,lng:15.4391};
+  return{lat:pts.reduce((s,b)=>s+b.lat,0)/pts.length,lng:pts.reduce((s,b)=>s+b.lng,0)/pts.length};
+}
+
+// FULLSCREEN MAP
+function openFullMap(){
+  const p=PAKETE.find(x=>x.id===currentDetailPaketId); if(!p) return;
+  document.getElementById('mapFsTitle').textContent=p.name;
+  document.getElementById('mapFullscreen').classList.add('open');
+  const el=document.getElementById('fullMap');
+  if(!fullscreenMap){
+    fullscreenMap=new google.maps.Map(el,{center:getCenter(p),zoom:15,mapTypeId:'roadmap',mapTypeControl:false,streetViewControl:true,fullscreenControl:false,zoomControl:true,gestureHandling:'greedy',styles:MAP_STYLES});
+  } else { fullscreenMap.setCenter(getCenter(p)); fullscreenMap.setZoom(15); }
+  // Add all markers
+  (gmarkers._full||[]).forEach(m=>m.setMap(null)); gmarkers._full=[];
+  p.betriebe.forEach((b,i)=>{
+    if(!b.lat) return;
+    const ck=!!state.checked[p.id+'_'+i];
+    const col=ck?'#15803d':PAKET_COLORS[(p.id-1)%PAKET_COLORS.length];
+    const sz=ck?28:20;
+    const m=new google.maps.Marker({
+      position:{lat:b.lat,lng:b.lng},map:fullscreenMap,
+      icon:{url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}"><circle cx="${sz/2}" cy="${sz/2}" r="${sz/2-2}" fill="${col}" stroke="white" stroke-width="2.5"/>${ck?`<path d="M${sz*.25} ${sz*.5}L${sz*.44} ${sz*.68}L${sz*.75} ${sz*.32}" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`:`<circle cx="${sz/2}" cy="${sz/2}" r="3" fill="rgba(255,255,255,.6)"/>`}</svg>`),
+        scaledSize:new google.maps.Size(sz,sz),anchor:new google.maps.Point(sz/2,sz/2)},
+      title:b.name,zIndex:ck?20:10
+    });
+    const gmUrl=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(b.adresse)}`;
+    m.addListener('click',()=>{
+      new google.maps.InfoWindow({content:`<div style="font-family:'Open Sans',sans-serif;padding:4px 2px;min-width:160px"><div style="font-size:9px;color:#c8102e;font-weight:700;font-family:'Montserrat',sans-serif;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">Paket ${p.id}</div><div style="font-size:14px;font-weight:700;color:#0f1f3d;margin-bottom:2px">${esc(b.name)}</div><div style="font-size:11px;color:#6b7280;margin-bottom:6px">${esc(b.adresse)}</div><a href="${gmUrl}" target="_blank" style="font-size:11px;font-weight:700;color:#15803d;text-decoration:none;font-family:'Montserrat',sans-serif">🚶 Navigation starten</a></div>`}).open(fullscreenMap,m);
+    });
+    gmarkers._full.push(m);
+  });
+  const pts=p.betriebe.filter(b=>b.lat);
+  if(pts.length>1){const b=new google.maps.LatLngBounds();pts.forEach(pt=>b.extend({lat:pt.lat,lng:pt.lng}));fullscreenMap.fitBounds(b,40);}
+}
+function closeFullMap(){ document.getElementById('mapFullscreen').classList.remove('open'); }
+
+// DESKTOP MAP
+function initDesktopMap(){
+  const el=document.getElementById('desktopMap');
+  if(!el||!window.innerWidth>=768) return;
+  desktopMap=new google.maps.Map(el,{center:{lat:47.0707,lng:15.4391},zoom:13,mapTypeId:'roadmap',mapTypeControl:false,streetViewControl:true,fullscreenControl:true,zoomControl:true,gestureHandling:'cooperative',styles:MAP_STYLES});
+  document.getElementById('deskSideHdr').style.display='block';
+}
+
+function refreshAllMarkers(){
+  if(!desktopMap) return;
+  (gmarkers._desktop||[]).forEach(m=>m.setMap(null)); gmarkers._desktop=[];
+  const iw=new google.maps.InfoWindow({maxWidth:240});
+  PAKETE.forEach(p=>{
+    p.betriebe.forEach((b,i)=>{
+      if(!b.lat) return;
+      const ck=!!state.checked[p.id+'_'+i];
+      const col=ck?'#15803d':PAKET_COLORS[(p.id-1)%PAKET_COLORS.length];
+      const sz=ck?26:18;
+      const m=new google.maps.Marker({
+        position:{lat:b.lat,lng:b.lng},map:desktopMap,
+        icon:{url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}"><circle cx="${sz/2}" cy="${sz/2}" r="${sz/2-2}" fill="${col}" stroke="white" stroke-width="2"/>${ck?`<path d="M${sz*.25} ${sz*.5}L${sz*.44} ${sz*.68}L${sz*.75} ${sz*.32}" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>`:`<circle cx="${sz/2}" cy="${sz/2}" r="2.5" fill="rgba(255,255,255,.6)"/>`}</svg>`),
+          scaledSize:new google.maps.Size(sz,sz),anchor:new google.maps.Point(sz/2,sz/2)},
+        title:b.name,zIndex:ck?20:10
+      });
+      const asgn=state.assignments[p.id];
+      const gmUrl=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.adresse)}`;
+      const rtUrl=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(b.adresse)}`;
+      m.addListener('click',()=>{
+        iw.setContent(`<div style="font-family:'Open Sans',sans-serif;padding:4px 2px;min-width:190px"><div style="font-size:9px;font-family:'Montserrat',sans-serif;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#c8102e;margin-bottom:4px">Paket ${p.id} · ${esc(p.name)}</div><div style="font-size:14px;font-weight:700;color:#0f1f3d;margin-bottom:2px">${esc(b.name)}</div><div style="font-size:11px;color:#6b7280;margin-bottom:2px">${esc(b.typ)}</div><div style="font-size:11px;color:#6b7280;margin-bottom:8px">📍 ${esc(b.adresse)}</div><div style="display:flex;gap:8px"><a href="${gmUrl}" target="_blank" style="font-size:11px;font-weight:700;color:#1565c0;font-family:'Montserrat',sans-serif;text-decoration:none">🗺 Maps</a><a href="${rtUrl}" target="_blank" style="font-size:11px;font-weight:700;color:#15803d;font-family:'Montserrat',sans-serif;text-decoration:none">🚶 Route</a></div></div>`);
+        iw.open(desktopMap,m);
+      });
+      gmarkers._desktop.push(m);
+    });
+  });
+}
+
+// GEOCODING
+async function geocodeAll(){
+  if(!geocoder) return;
+  const all=[];
+  PAKETE.forEach(p=>p.betriebe.forEach((b,i)=>{if(!b.geocoded)all.push({p,b,i});}));
+  if(!all.length){ setGeoSt(Object.keys(gmarkers._desktop||{}).length+' Pins ✓',true); return; }
+  let done=0; const tot=all.length;
+  setGeoSt('Geocoding '+tot+'…',false);
+  for(const {p,b,i} of all){
+    await new Promise(res=>{
+      geocoder.geocode({address:b.adresse,region:'AT',componentRestrictions:{country:'AT'}},(r,s)=>{
+        if(s==='OK'&&r?.[0]){b.lat=r[0].geometry.location.lat();b.lng=r[0].geometry.location.lng();b.geocoded=true;if(detailMiniMap&&currentDetailPaketId===p.id)renderDetailBetriebe(p.id);}
+        else{geocoder.geocode({address:b.name+', Graz, Austria',region:'AT'},(r2,s2)=>{if(s2==='OK'&&r2?.[0]){b.lat=r2[0].geometry.location.lat();b.lng=r2[0].geometry.location.lng();b.geocoded=true;}b.geocoded=true;res();});return;}
+        res();
+      });
+    });
+    done++;
+    if(done%5===0){refreshAllMarkers();}
+  }
+  setGeoSt(done+' Pins ✓',true);
+  refreshAllMarkers();
+  if(currentDetailPaketId){const p=PAKETE.find(x=>x.id===currentDetailPaketId);if(p)initDetailMap(p);}
+}
+function setGeoSt(t,d){
+  document.getElementById('geoTextDesk').textContent=t;
+  document.getElementById('geoDotDesk').className='geo-dot'+(d?' done':'');
+}
+
+const MAP_STYLES=[
+  {featureType:'poi.business',stylers:[{visibility:'off'}]},
+  {featureType:'poi',elementType:'labels.icon',stylers:[{visibility:'off'}]},
+  {featureType:'transit',elementType:'labels',stylers:[{visibility:'off'}]},
+  {featureType:'water',elementType:'geometry',stylers:[{color:'#c9e9f6'}]},
+  {featureType:'landscape',elementType:'geometry',stylers:[{color:'#f4f1eb'}]},
+  {featureType:'road',elementType:'geometry',stylers:[{color:'#ffffff'}]},
+  {featureType:'road.arterial',elementType:'geometry',stylers:[{color:'#ffe0b2'}]},
+  {featureType:'road.highway',elementType:'geometry',stylers:[{color:'#ffcc80'}]},
+];
+
+// ── FILTER ──
+document.querySelectorAll('.fp').forEach(fp=>{
+  fp.addEventListener('click',()=>{
+    document.querySelectorAll('.fp').forEach(x=>x.classList.remove('active'));
+    fp.classList.add('active'); state.filter=fp.dataset.f; renderList();
+  });
+});
+
+// ── TOAST ──
+function showToast(msg,col='#15803d'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=col;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+// ── INIT (Google Maps callback) ──
+function initMap(){
+  geocoder=new google.maps.Geocoder();
+  // Only init desktop map on wide screens
+  if(window.innerWidth>=768) initDesktopMap();
+  startFirebase();
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTbJWxH9znrHW8K-qPEgDgYBUG82npt6k&callback=initMap&language=de&region=AT"></script>
+</body>
+</html>
